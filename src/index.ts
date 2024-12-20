@@ -16,17 +16,27 @@ type TrimStart<S extends string> = S extends `${Ignored}${infer I}`
   ? TrimStart<I>
   : S;
 
-type ExpectString<S extends string> = TrimStart<S> extends `"""${infer A}`
-  ? A extends `${infer B}"""${infer C}`
-    ? [Unescape<B>, C]
-    : never
+type ExpectString<S extends string> = TrimStart<S> extends `"""${infer I}`
+  ? ExpectStringBlockInternal<I, "">
   : TrimStart<S> extends `"${infer I}`
-  ? ExpectStringInternal<I>
+  ? ExpectStringInternal<I, "">
   : never;
+
+type ExpectStringBlockInternal<
+  S extends string,
+  R extends string
+> = S extends `${infer A}"""${infer B}`
+  ? A extends `${infer C}\\`
+    ? ExpectStringBlockInternal<B, `${R}${C}"""`>
+    : [PostProcessBlockString<`${R}${A}`>, B]
+  : never;
+
+type PostProcessBlockString<S extends string> =
+  /* // TODO: https://spec.graphql.org/October2021/#BlockStringValue() */ S;
 
 type ExpectStringInternal<
   S extends string,
-  R extends string = ""
+  R extends string
 > = S extends `${infer A}"${infer B}`
   ? A extends `${string}\\`
     ? ExpectStringInternal<B, `${R}${A}\\"`>
